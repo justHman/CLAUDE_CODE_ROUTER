@@ -1,9 +1,12 @@
 import sqlite3
+import os
 from pathlib import Path
 from datetime import datetime
 from loguru import logger
 
-DB_DIR = Path("data")
+# Use environment variable for DB directory (useful for Docker/Fly.io Volumes)
+db_env = os.getenv("DB_DIR", "data")
+DB_DIR = Path(db_env)
 DB_PATH = DB_DIR / "router.db"
 
 def init_db():

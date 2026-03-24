@@ -1,7 +1,7 @@
-# fly.toml app configuration file generated for claude-code-router-ofmiua
+# fly.toml app configuration file
 
-app = "claude-code-router-ofmiua"
-primary_region = "ams"
+app = "ai-router"
+primary_region = "sin"
 
 [build]
 
@@ -18,7 +18,12 @@ primary_region = "ams"
   cpu_kind = "shared"
   cpus = 1
 
+[mounts]
+  source = "router_data"
+  destination = "/data"
+
 [env]
   HOST = "0.0.0.0"
   PORT = "8082"
   LOG_LEVEL = "INFO"
+  DB_DIR = "/data"

@@ -26,6 +26,15 @@ def create_app() -> FastAPI:
     app.include_router(messages_router)
     app.include_router(dashboard_router)
     
+    @app.get("/")
+    async def root():
+        return {
+            "message": "Welcome to Claude Code API Router Server! 🚀",
+            "docs": "/docs",
+            "dashboard": "/dashboard",
+            "health": "/health"
+        }
+
     @app.get("/health")
     async def health_check():
         return {"status": "ok"}

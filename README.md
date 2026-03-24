@@ -91,6 +91,14 @@
 
 ---
 
+## ☁️ Cloud Deployment (Fly.io)
+
+Ready to put your router online? We have a comprehensive guide for deploying to **Fly.io** with complete **GitHub Actions CI/CD** automation.
+
+👉 **[Read the Fly.io Deployment Guide](docs/FLY_DEPLOYMENT.md)**
+
+---
+
 ## ⚙️ Configuration (4-Level Inheritance)
 
 The router employs a sophisticated merging strategy to resolve parameters like `temperature`, `max_tokens`, `top_p`, `top_k`, and `system_prompt`:
@@ -112,9 +120,9 @@ To route Claude Code through your server, update your `~/.claude/settings.json`:
     "ANTHROPIC_BASE_URL": "http://127.0.0.1:8082",
     "ANTHROPIC_AUTH_TOKEN": "",
     "ANTHROPIC_API_KEY": "",
-    "ANTHROPIC_MODEL": ""
+    "ANTHROPIC_MODEL": "gemini-2.5-flash"
   },
-  "model": ""
+  "model": "gemini-2.5-flash"
 }
 ```
 

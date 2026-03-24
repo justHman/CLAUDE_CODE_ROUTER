@@ -9,10 +9,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
+# Create and activate virtual environment
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
 # Copy the requirements file into the container
 COPY requirements.txt .
 
-# Install any needed packages specified in requirements.txt
+# Install dependencies in venv
+RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the rest of the application code into the container
@@ -26,6 +31,5 @@ ENV HOST=0.0.0.0
 ENV PORT=8082
 ENV LOG_LEVEL=INFO
 
-# Command to run the application
-# We use uvicorn directly for better production handling
+# Command to run the application (will use uvicorn from the venv thanks to the PATH env var)
 CMD ["uvicorn", "api.server:app", "--host", "0.0.0.0", "--port", "8082"]

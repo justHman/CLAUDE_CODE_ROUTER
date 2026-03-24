@@ -1,0 +1,59 @@
+name: Deploy to Fly.io
+
+on:
+  push:
+    branches:
+      - main  # Tự động chạy khi bạn push code lên nhánh main
+
+jobs:
+  test_and_deploy:
+    name: Test and Deploy
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Verify Secrets are injected (For debugging)
+        env:
+          # Nạp thử key từ GitHub Secrets vào
+          NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: |
+          echo "Kiểm tra xem Action có nhận được Key không nhé:"
+          if [ -n "$NVIDIA_API_KEY" ]; then echo "✅ NVIDIA_API_KEY đã được nạp (Độ dài: ${#NVIDIA_API_KEY} ký tự)"; else echo "❌ NVIDIA_API_KEY trống rỗng!"; fi
+          if [ -n "$GEMINI_API_KEY" ]; then echo "✅ GEMINI_API_KEY đã được nạp (Độ dài: ${#GEMINI_API_KEY} ký tự)"; else echo "❌ GEMINI_API_KEY trống rỗng!"; fi
+          if [ -n "$OPENROUTER_API_KEY" ]; then echo "✅ OPENROUTER_API_KEY đã được nạp (Độ dài: ${#OPENROUTER_API_KEY} ký tự)"; else echo "❌ OPENROUTER_API_KEY trống rỗng!"; fi
+          
+      - name: Run Pytest
+        # Lệnh này chạy test. Cờ 'continue-on-error: true' giúp GitHub Action
+        # không bị dừng lại nếu có lỗi (ví dụ như lỗi 429 quá tải API).
+        continue-on-error: true
+        env:
+          # Các biến môi trường tạm thời cho test (Bạn có thể cấu hình thêm ở GitHub Secrets sau)
+          NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: |
+          python -m pytest tests
+
+      - name: Setup Flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Deploy to Fly.io
+        # Lệnh này sẽ đẩy code và build trên máy chủ siêu cấp của Fly (--remote-only)
+        run: flyctl deploy --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
