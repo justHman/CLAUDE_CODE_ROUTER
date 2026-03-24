@@ -10,16 +10,27 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import BaseModel
 from typing import Dict, Optional, Any, List, Union
 
+class ModelParams(BaseModel):
+    max_tokens: Optional[int] = None
+    temperature: Optional[float] = None
+    top_p: Optional[float] = None
+    top_k: Optional[int] = None
+    system_prompt_prefix: Optional[str] = None
+    system_prompt_suffix: Optional[str] = None
+
 class ProviderConfig(BaseModel):
     base_url: str
     api_key: Optional[str] = None
     env_key_name: Optional[str] = None # Name of env var holding the key if not specified directly
     type: str # e.g. "openai_compatible"
+    config: Optional[ModelParams] = None # Level 2 Configuration
 
 class RoutingConfig(BaseModel):
     providers: Dict[str, ProviderConfig]
-    model_mapping: Dict[str, Union[str, Dict[str, str]]] # Support string or dict for model translation
+    model_mapping: Dict[str, Union[str, Dict[str, Any]]] # Updated to Dict[str, Any] for nested config
     default_provider: str
+    global_config: Optional[ModelParams] = None # Level 1 Configuration
+    profiles: Optional[Dict[str, ModelParams]] = None # Contextual Profiles
 
 class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"

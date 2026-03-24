@@ -31,11 +31,45 @@ class OpenAICompatibleProvider(BaseProvider):
             await client.aclose()
             return response
 
+    def _apply_config_to_payload(self, request: AnthropicMessageRequest, payload: dict):
+        if not self.model_config:
+            return payload
+            
+        # Apply parameters
+        if self.model_config.max_tokens:
+            payload["max_tokens"] = self.model_config.max_tokens
+        if self.model_config.temperature is not None:
+            payload["temperature"] = self.model_config.temperature
+        if self.model_config.top_p is not None:
+            payload["top_p"] = self.model_config.top_p
+            
+        # Handle system prompt injection
+        prefix = self.model_config.system_prompt_prefix or ""
+        suffix = self.model_config.system_prompt_suffix or ""
+        
+        if prefix or suffix:
+            has_system = False
+            for msg in payload.get("messages", []):
+                if msg.get("role") == "system":
+                    msg["content"] = f"{prefix}{msg.get('content', '')}{suffix}"
+                    has_system = True
+                    break
+            
+            if not has_system:
+                payload["messages"].insert(0, {
+                    "role": "system",
+                    "content": f"{prefix}{suffix}"
+                })
+        
+        return payload
+
     async def generate_message(self, request: AnthropicMessageRequest) -> Dict[str, Any]:
         """Not often used by Claude CLI, heavily reliant on stream."""
         openai_req = convert_request(request)
         if self.model:
             openai_req["model"] = self.model
+            
+        self._apply_config_to_payload(request, openai_req)
             
         response = await self._post_request(openai_req, stream=False)
         data = response.json()
@@ -75,6 +109,7 @@ class OpenAICompatibleProvider(BaseProvider):
         if self.model:
             openai_req["model"] = self.model
             
+        self._apply_config_to_payload(request, openai_req)
         openai_req["stream"] = True
         
         response = await self._post_request(openai_req, stream=True)

@@ -1,9 +1,15 @@
+import pytest
 import asyncio
 import base64
 from core.routing import router
 from transformers.models import AnthropicMessageRequest, AnthropicMessage, AnthropicMessageContent, AnthropicSource
 
-async def test_model(model_name):
+@pytest.mark.asyncio
+@pytest.mark.parametrize("model_name", [
+    "gemini-2.5-flash",
+    "claude-haiku-4-5-20251001", # Routes to Gemini
+])
+async def test_model_basic(model_name):
     print(f"\n--- Testing Model: {model_name} ---")
     req = AnthropicMessageRequest(
         model=model_name,
@@ -11,18 +17,18 @@ async def test_model(model_name):
         max_tokens=100
     )
     provider = router.get_provider_for_model(model_name)
-    print(f"Provider resolved: {type(provider).__name__} (Target: {getattr(provider, 'model', model_name)})")
+    assert provider is not None
     
-    try:
-        resp = await provider.generate_message(req)
-        try:
-            text = resp['content'][0]['text']
-            print(f"✅ Success! Response: {text}")
-        except (KeyError, IndexError):
-            print(f"⚠️ Warning: Response format issue: {resp}")
-    except Exception as e:
-        print(f"🔥 Exception: {e}")
+    # We don't necessarily want to call the real API in every test environment,
+    # but the user asked to run tests to confirm everything is working.
+    # If API keys are missing, this might fail, which is expected.
+    
+    resp = await provider.generate_message(req)
+    assert "content" in resp
+    assert len(resp["content"]) > 0
+    assert resp["content"][0]["type"] == "text"
 
+@pytest.mark.asyncio
 async def test_gemini_vision():
     print(f"\n--- Testing Gemini Vision ---")
     # Base64 for a tiny 1x1 pixel PNG
@@ -34,29 +40,14 @@ async def test_gemini_vision():
     ]
     
     req = AnthropicMessageRequest(
-        model="gemini-2.5-flash-image",
+        model="gemini-2.5-flash", 
         messages=[AnthropicMessage(role="user", content=content_blocks)],
         max_tokens=100
     )
     
-    provider = router.get_provider_for_model("gemini-2.5-flash-image")
-    print(f"Provider resolved: {type(provider).__name__}")
+    # Use a model mapped to gemini
+    provider = router.get_provider_for_model("gemini-2.5-flash")
     
-    try:
-        resp = await provider.generate_message(req)
-        try:
-            text = resp['content'][0]['text']
-            print(f"✅ Vision Success! Response: {text}")
-        except (KeyError, IndexError):
-            print(f"⚠️ Warning: Response format issue: {resp}")
-    except Exception as e:
-        print(f"🔥 Exception: {e}")
-
-async def main():
-    await test_gemini_vision()
-    await test_model("gemini-2.5-flash")
-    await test_model("claude-3-5-sonnet-20241022")
-    await test_model("claude-3-opus-20240229")
-
-if __name__ == "__main__":
-    asyncio.run(main())
+    resp = await provider.generate_message(req)
+    assert "content" in resp
+    assert len(resp["content"]) > 0

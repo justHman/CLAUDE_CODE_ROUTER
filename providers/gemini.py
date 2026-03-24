@@ -8,27 +8,32 @@ import json
 import uuid
 
 class GeminiProvider(BaseProvider):
-    def __init__(self, base_url: str, api_key: str | None = None, model: str | None = None):
-        super().__init__(base_url, api_key, model)
+    def __init__(self, base_url: str, api_key: str | None = None, model: str | None = None, model_config: Any = None):
+        super().__init__(base_url=base_url, api_key=api_key, model=model, model_config=model_config)
         # GenAI client
         self.client = genai.Client(api_key=self.api_key)
 
     async def generate_message(self, request: AnthropicMessageRequest) -> Dict[str, Any]:
         contents, system_instruction, tools = convert_request_to_gemini(request)
-        target_model = self.model or request.model
         
-        config_params = {
-            "temperature": request.temperature,
-            "max_output_tokens": request.max_tokens or 8192,
-            "system_instruction": system_instruction
-        }
-        if tools:
-            config_params["tools"] = tools
-            
-        config = types.GenerateContentConfig(**config_params)
+        # Merge system prompt injection
+        if self.model_config:
+            prefix = self.model_config.system_prompt_prefix or ""
+            suffix = self.model_config.system_prompt_suffix or ""
+            if prefix or suffix:
+                system_instruction = f"{prefix}{system_instruction or ''}{suffix}"
+
+        config = types.GenerateContentConfig(
+            system_instruction=system_instruction,
+            tools=tools,
+            temperature=self.model_config.temperature if self.model_config else None,
+            top_p=self.model_config.top_p if self.model_config else None,
+            top_k=self.model_config.top_k if self.model_config else None,
+            max_output_tokens=self.model_config.max_tokens if self.model_config else None,
+        )
         
         response = await self.client.aio.models.generate_content(
-            model=target_model,
+            model=self.model,
             contents=contents,
             config=config
         )
@@ -39,7 +44,7 @@ class GeminiProvider(BaseProvider):
             "id": f"msg_{uuid.uuid4().hex}",
             "type": "message",
             "role": "assistant",
-            "model": target_model,
+            "model": self.model,
             "content": [
                 {
                     "type": "text",
@@ -56,22 +61,27 @@ class GeminiProvider(BaseProvider):
 
     async def generate_stream(self, request: AnthropicMessageRequest) -> AsyncGenerator[str, None]:
         contents, system_instruction, tools = convert_request_to_gemini(request)
-        target_model = self.model or request.model
         
-        config_params = {
-            "temperature": request.temperature,
-            "max_output_tokens": request.max_tokens or 8192,
-            "system_instruction": system_instruction
-        }
-        if tools:
-            config_params["tools"] = tools
-            
-        config = types.GenerateContentConfig(**config_params)
+        # Merge system prompt injection
+        if self.model_config:
+            prefix = self.model_config.system_prompt_prefix or ""
+            suffix = self.model_config.system_prompt_suffix or ""
+            if prefix or suffix:
+                system_instruction = f"{prefix}{system_instruction or ''}{suffix}"
+
+        config = types.GenerateContentConfig(
+            system_instruction=system_instruction,
+            tools=tools,
+            temperature=self.model_config.temperature if self.model_config else None,
+            top_p=self.model_config.top_p if self.model_config else None,
+            top_k=self.model_config.top_k if self.model_config else None,
+            max_output_tokens=self.model_config.max_tokens if self.model_config else None,
+        )
         
         msg_id = f"msg_{uuid.uuid4().hex}"
         
         # 1. message_start
-        yield f"event: message_start\ndata: {json.dumps({'type': 'message_start', 'message': {'id': msg_id, 'type': 'message', 'role': 'assistant', 'model': target_model, 'content': [], 'usage': {'input_tokens': 0, 'output_tokens': 0}}})}\n\n"
+        yield f"event: message_start\ndata: {json.dumps({'type': 'message_start', 'message': {'id': msg_id, 'type': 'message', 'role': 'assistant', 'model': self.model, 'content': [], 'usage': {'input_tokens': 0, 'output_tokens': 0}}})}\n\n"
         
         # 2. content_block_start
         yield f"event: content_block_start\ndata: {json.dumps({'type': 'content_block_start', 'index': 0, 'content_block': {'type': 'text', 'text': ''}})}\n\n"
@@ -80,7 +90,7 @@ class GeminiProvider(BaseProvider):
         output_tokens = 0
 
         async for chunk in await self.client.aio.models.generate_content_stream(
-            model=target_model,
+            model=self.model,
             contents=contents,
             config=config
         ):

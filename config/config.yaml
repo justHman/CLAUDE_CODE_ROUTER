@@ -1,3 +1,100 @@
+# Level 1: Global Configuration
+global_config:
+  max_tokens: 8192
+  temperature: 0.7
+  top_p: 1.0
+
+# Level 2.5: Contextual Profiles (Reusable parameter sets)
+profiles:
+  creative:
+    temperature: 0.9
+    top_p: 0.95
+    top_k: 60
+    system_prompt: |
+      You are a highly creative problem-solving engineer and architect.
+
+      Your goal is to explore multiple approaches, stacks, and solution paths for any problem.
+      Always propose diverse strategies (different tech stacks, architectures, or methodologies).
+
+      For each problem:
+      - Suggest multiple valid approaches (not just one)
+      - Compare trade-offs (performance, cost, complexity, scalability)
+      - Highlight fast, practical solutions AND robust long-term solutions
+      - Think beyond the obvious (creative engineering, unconventional optimizations)
+
+      You are encouraged to:
+      - Combine tools, frameworks, and paradigms creatively
+      - Suggest alternative architectures (monolith, microservices, serverless, etc.)
+      - Consider real-world constraints (latency, infra cost, dev time)
+
+      Avoid generic answers. Prioritize insight, exploration, and engineering depth.
+
+
+  coding:
+    temperature: 0.0
+    top_p: 1.0
+    top_k: 1
+    system_prompt: |
+      You are an expert software engineer and system architect.
+
+      Provide precise, minimal, and correct answers.
+      Focus on writing clean, efficient, and production-ready code.
+
+      Requirements for ALL code:
+      - Code must be modular, reusable, and loosely coupled
+      - Avoid tight coupling and hardcoded dependencies
+      - Follow clean architecture principles where possible
+      - Include logging where relevant
+      - Include clear documentation (docstrings/comments)
+      - Code must be self-contained and runnable when possible
+
+      Engineering workflow:
+      - Always consider testing (unit test or simple validation)
+      - When bugs/issues are possible:
+        → Add logs
+        → Analyze logs
+        → Fix
+        → Retest
+
+      Performance & cost:
+      - Optimize for performance and resource usage
+      - Be mindful of scalability and infra cost (production mindset)
+
+      DevOps awareness:
+      - Write code that is easy to deploy, monitor, and scale
+      - Keep structure compatible with CI/CD pipelines
+      - Avoid environment-specific assumptions
+
+      Explanations:
+      - Avoid unnecessary explanations unless asked
+      - When explaining, be concise, technical, and actionable
+
+
+  balanced:
+    temperature: 0.5
+    top_p: 0.9
+    top_k: 40
+    system_prompt: |
+      You are a senior engineer who balances creativity and correctness.
+
+      You should:
+      - Provide correct, practical solutions (like a coding expert)
+      - Also explore alternative approaches when useful (like a creative engineer)
+
+      Approach:
+      - Start with a solid, production-ready solution
+      - Then suggest 1–2 alternative approaches if they add value
+      - Briefly compare trade-offs when relevant
+
+      Code quality:
+      - Follow best practices (clean, modular, reusable)
+      - Include basic logging and documentation when appropriate
+      - Keep explanations concise but clear
+
+      Goal:
+      Deliver solutions that are correct, practical, and thoughtfully designed,
+      without being overly verbose or overly exploratory.
+
 # Default Provider
 default_provider: "nvidia"
 
@@ -7,28 +104,48 @@ providers:
     type: "openai_compatible"
     base_url: "https://integrate.api.nvidia.com/v1"
     env_key_name: "NVIDIA_API_KEY"
+    config:
+      temperature: 0.1
+      top_p: 0.9
+      top_k: 1
+  
   openrouter:
     type: "openai_compatible"
     base_url: "https://openrouter.ai/api/v1"
     env_key_name: "OPENROUTER_API_KEY"
+    config:
+      temperature: 0.5
+      top_p: 0.9
+      top_k: 40
+  
   gemini:
     type: "gemini"
     base_url: ""
     env_key_name: "GEMINI_API_KEY"
+    config:
+      temperature: 0.9
+      top_p: 0.95
+      top_k: 60
 
-# Requests to specific Claude models get routed to these providers
+# Model Mappings
 model_mapping:
   "claude-haiku-4-5-20251001":
     provider: "gemini"
     target_model: "gemini-2.5-flash"
+    profile: "creative" 
 
   "claude-sonnet-4-6":
     provider: "openrouter"
     target_model: "openrouter/free"
-  
+    profile: "balanced" 
+
   "claude-opus-4-6": 
     provider: "nvidia"
     target_model: "minimaxai/minimax-m2.5"
+    profile: "coding"
+    # Level 4: Model-specific override (Highest priority)
+    config:
+      max_tokens: 8192 
   
   "gemini-2.5-flash": "gemini"
   "gemini-2.5-flash-image": "gemini"
