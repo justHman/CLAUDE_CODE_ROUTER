@@ -1,0 +1,49 @@
+# Default Provider
+default_provider: "nvidia"
+
+# Provider definitions
+providers:
+  nvidia:
+    type: "openai_compatible"
+    base_url: "https://integrate.api.nvidia.com/v1"
+    env_key_name: "NVIDIA_API_KEY"
+  openrouter:
+    type: "openai_compatible"
+    base_url: "https://openrouter.ai/api/v1"
+    env_key_name: "OPENROUTER_API_KEY"
+  gemini:
+    type: "gemini"
+    base_url: ""
+    env_key_name: "GEMINI_API_KEY"
+
+# Requests to specific Claude models get routed to these providers
+model_mapping:
+  "claude-haiku-4-5-20251001":
+    provider: "gemini"
+    target_model: "gemini-2.5-flash"
+
+  "claude-sonnet-4-6":
+    provider: "openrouter"
+    target_model: "openrouter/free"
+  
+  "claude-opus-4-6": 
+    provider: "nvidia"
+    target_model: "minimaxai/minimax-m2.5"
+  
+  "gemini-2.5-flash": "gemini"
+  "gemini-2.5-flash-image": "gemini"
+  "gemini-2.5-pro": "gemini"
+
+  "nvidia/nemotron-3-super-120b-a12b:free": "openrouter"
+  "z-ai/glm-4.5-air:free": "openrouter"
+  "nvidia/nemotron-3-nano-30b-a3b:free": "openrouter"
+  "qwen/qwen3-coder:free": "openrouter"
+  "openai/gpt-oss-120b:free": "openrouter"
+  "openrouter/free": "openrouter"
+  "minimax/minimax-m2.5:free": "openrouter"
+  "stepfun/step-3.5-flash:free": "openrouter"
+
+  "minimaxai/minimax-m2.5": "nvidia"
+  "moonshotai/kimi-k2.5": "nvidia"
+  "microsoft/phi-3-medium-128k-instruct": "nvidia"
+  "mistralai/mamba-codestral-7b-v0.1": "nvidia"
