@@ -7,7 +7,7 @@ Core functionality: configuration, logging, and routing logic.
 
 - **config.py** - Settings management using pydantic-settings, loads YAML config and .env files
 - **logger.py** - Logging configuration
-- **routing.py** - Router class that maps models to providers
+- **routing.py** - Router class that handles 4-level configuration merging (Global, Provider, Profile, Model) and translates model aliases.
 - **db.py** - Request logging to database (if enabled)
 
 ## Configuration

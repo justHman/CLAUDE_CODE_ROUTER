@@ -5,31 +5,52 @@ Configuration files for the Claude Code Router.
 
 ## Files
 
-- **config.yaml** - Provider definitions and model mappings
+- **config.yaml** - Provider definitions, common Profiles, and model mappings
 - **.env.example** - Template for environment variables
 
 ## config.yaml Structure
 
 ```yaml
+# Level 1: Global Defaults
+global_config:
+  max_tokens: 4096
+  temperature: 0.7
+
+# Level 2: Profiles (Reusable Strategy)
+profiles:
+  coding:
+    temperature: 0.0
+    top_k: 1
+    system_prompt: "You are an expert engineer..."
+
+# Level 3: Providers
 providers:
   provider_name:
     base_url: "https://api.provider.com/v1"
-    api_key: "your-api-key"  # or use env_key_name
-    env_key_name: "PROVIDER_API_KEY"
     type: "openai_compatible"
+    config:
+      temperature: 0.5
 
+# Level 4: Model Mapping (Priority)
 model_mapping:
-  "model_alias": "provider_name"
-  # or with translation:
   "model_alias":
     provider: "provider_name"
     target_model: "actual_model_name"
+    profile: "coding"
+    config:
+      max_tokens: 8192
 
 default_provider: "provider_name"
 ```
 
-## Model Mapping
+## Configuration Layers (Inheritance)
 
-Two formats supported:
-1. Simple: Maps model name directly to provider
-2. With translation: Maps alias to provider + actual model name
+The router supports a 4-level configuration merging strategy:
+1. **Global**: `global_config` in `config.yaml`.
+2. **Provider**: `providers[name].config`.
+3. **Profile**: `profiles[name]` (referenced by `profile` key in model mapping).
+4. **Model Specific**: `model_mapping[name].config`.
+
+## Profiles
+
+Profiles allow you to define common parameter sets (like `coding`, `creative`) and reuse them across different models to keep the configuration clean.
