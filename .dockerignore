@@ -1,0 +1,13 @@
+venv/
+__pycache__/
+.git/
+.pytest_cache/
+.env
+*.db
+*.log
+tests/
+demo.png
+README.md
+implementation_plan.md
+task.md
+walkthrough.md
