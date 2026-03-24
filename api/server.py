@@ -3,10 +3,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from api.routes import router as messages_router
 from core.config import settings
 from core.logger import setup_logging, logger
+from core.db import init_db
 
 def create_app() -> FastAPI:
     setup_logging()
     logger.info("Initializing FastAPI application")
+    init_db()  # Initialize the SQLite database and tables
     
     app = FastAPI(
         title="Claude Code Router",
