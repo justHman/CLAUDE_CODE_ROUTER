@@ -45,15 +45,19 @@ def create_app() -> FastAPI:
         
     @app.get("/fly/logs/{app_name}")
     def get_fly_logs(app_name: str):
-        """Redirect to Fly.io monitoring dashboard if on Fly, otherwise return info."""
-        # FLY_APP_NAME is automatically set by Fly.io at runtime
+        url = f"https://fly.io/apps/{app_name}/monitoring"
         if settings.FLY_APP_NAME or os.getenv("FLY_APP_NAME"):
-            return RedirectResponse(url=f"https://fly.io/apps/{app_name}/monitoring")
+            # Thay vì RedirectResponse, trả về JSON để Frontend tự window.open()
+            return {
+                "status": "success", 
+                "fly_monitoring_url": url,
+                "message": "You are running on Fly.io.",\
+            }
         
         return {
             "status": "local",
-            "message": "You are running on Localhost. Please check your terminal/console for logs.",
-            "fly_monitoring_url": f"https://fly.io/apps/{app_name}/monitoring"
+            "fly_monitoring_url": url,
+            "message": f"You are running on Localhost. Please check your terminal/console for logs. Maybe it is running on Fly.io, check {url}"
         }
 
     return app

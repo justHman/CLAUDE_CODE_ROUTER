@@ -3,7 +3,10 @@ name: Deploy to Fly.io
 on:
   push:
     branches:
-      - main  # Tự động chạy khi bạn push code lên nhánh main
+      - main
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   test:
