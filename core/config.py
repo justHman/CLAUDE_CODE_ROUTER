@@ -37,6 +37,7 @@ class Settings(BaseSettings):
     HOST: str = "127.0.0.1"
     PORT: int = 8082
     CONFIG_PATH: str = "config/config.yaml"
+    FLY_APP_NAME: Optional[str] = None
     
     model_config = SettingsConfigDict(
         env_file=".env",

@@ -1,16 +1,12 @@
-import asyncio
-import subprocess
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
-from fastapi.responses import StreamingResponse
+import os
+from fastapi import FastAPI
+from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
 from api.routes import router as messages_router
+from api.dashboard import router as dashboard_router
 from core.config import settings
 from core.logger import setup_logging, logger
 from core.db import init_db
-
-class SSHCommand(BaseModel):
-    command: str
 
 def create_app() -> FastAPI:
     setup_logging()
@@ -31,7 +27,6 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
     
-    from api.dashboard import router as dashboard_router
     app.include_router(messages_router)
     app.include_router(dashboard_router)
     
@@ -39,7 +34,7 @@ def create_app() -> FastAPI:
     async def root():
         return {
             "message": "Welcome to Claude Code API Router Server! 🚀",
-            "test": "/docs",
+            "docs": "/docs",
             "dashboard": "/dashboard",
             "health": "/health"
         }
@@ -50,23 +45,16 @@ def create_app() -> FastAPI:
         
     @app.get("/fly/logs/{app_name}")
     def get_fly_logs(app_name: str):
-        """Stream logs for a Fly.io app."""
-        def log_generator():
-            process = subprocess.Popen(
-                ["flyctl", "logs", "-a", app_name],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT
-            )
-            try:
-                assert process.stdout is not None
-                for line in iter(process.stdout.readline, b''):
-                    if not line:
-                        break
-                    yield line
-            finally:
-                process.terminate()
-
-        return StreamingResponse(log_generator(), media_type="text/plain")
+        """Redirect to Fly.io monitoring dashboard if on Fly, otherwise return info."""
+        # FLY_APP_NAME is automatically set by Fly.io at runtime
+        if settings.FLY_APP_NAME or os.getenv("FLY_APP_NAME"):
+            return RedirectResponse(url=f"https://fly.io/apps/{app_name}/monitoring")
+        
+        return {
+            "status": "local",
+            "message": "You are running on Localhost. Please check your terminal/console for logs.",
+            "fly_monitoring_url": f"https://fly.io/apps/{app_name}/monitoring"
+        }
 
     return app
 
