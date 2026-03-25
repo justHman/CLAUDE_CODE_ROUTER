@@ -8,10 +8,11 @@ import json
 import uuid
 
 class GeminiProvider(BaseProvider):
-    def __init__(self, base_url: str, api_key: str | None = None, model: str | None = None, model_config: Any = None):
-        super().__init__(base_url=base_url, api_key=api_key, model=model, model_config=model_config)
-        # GenAI client
-        self.client = genai.Client(api_key=self.api_key)
+    def __init__(self, config: Any, custom_model: str | None = None, model_config: Any = None):
+        super().__init__(config=config, custom_model=custom_model, model_config=model_config)
+
+    def _get_client(self) -> genai.Client:
+        return genai.Client(api_key=self.api_key)
 
     async def generate_message(self, request: AnthropicMessageRequest) -> Dict[str, Any]:
         contents, system_instruction, tools = convert_request_to_gemini(request)
@@ -32,11 +33,23 @@ class GeminiProvider(BaseProvider):
             max_output_tokens=self.model_config.max_tokens if self.model_config else None,
         )
         
-        response = await self.client.aio.models.generate_content(
-            model=self.model,
-            contents=contents,
-            config=config
-        )
+        while True:
+            try:
+                client = self._get_client()
+                response = await client.aio.models.generate_content(
+                    model=self.model,
+                    contents=contents,
+                    config=config
+                )
+                break
+            except Exception as e:
+                is_429 = "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e)
+                
+                if is_429 and self.provider_config.rotate_key():
+                    from core.logger import logger
+                    logger.warning("Gemini API key exhausted (429). Rotated to next key and retrying.")
+                    continue
+                raise e
         
         # Translate to Anthropic non-stream response
         text = response.text if response.text else ""
@@ -89,11 +102,26 @@ class GeminiProvider(BaseProvider):
         input_tokens = 0
         output_tokens = 0
 
-        async for chunk in await self.client.aio.models.generate_content_stream(
-            model=self.model,
-            contents=contents,
-            config=config
-        ):
+        while True:
+            try:
+                client = self._get_client()
+                stream_iter = await client.aio.models.generate_content_stream(
+                    model=self.model,
+                    contents=contents,
+                    config=config
+                )
+                break
+            except Exception as e:
+                is_429 = "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e)
+                
+                if is_429 and self.provider_config.rotate_key():
+                    from core.logger import logger
+                    logger.warning("Gemini API key exhausted (429). Rotated to next stream key and retrying.")
+                    continue
+                raise e
+
+        # Stream the yielded chunks
+        async for chunk in stream_iter:
             if chunk.usage_metadata:
                 input_tokens = chunk.usage_metadata.prompt_token_count
                 output_tokens = chunk.usage_metadata.candidates_token_count

@@ -29,25 +29,25 @@ flyctl auth login
 
 Vì đặc thù của kiến trúc Docker trên Fly.io sẽ tự động xoá mọi file khi máy chủ khởi động lại (restart/redeploy), chúng ta cần thiết lập một ổ đĩa vĩnh viễn (Volume) để tránh mất file lịch sử chat SQL `router.db`.
 
-1. **Sinh cấu hình App mới** (Đừng chạy lệnh này nếu file `fly.toml` đã tồn tại và được cấu hình chuẩn):
-   ```powershell
-   flyctl launch
-   ```
-   *Lưu ý: Hủy (Ctrl + C) khi nó hỏi bạn có muốn Deploy luôn không.*
+1.  **Sinh cấu hình App mới** (Đừng chạy lệnh này nếu file `fly.toml` đã tồn tại và được cấu hình chuẩn):
+    ```powershell
+    flyctl launch
+    ```
+    *Lưu ý: Hủy (Ctrl + C) khi nó hỏi bạn có muốn Deploy luôn không.*
 
-2. **Chỉ định Vùng máy chủ (Region)**
-   Trong file `fly.toml`, hãy kiểm tra và chỉnh biến `primary_region` về khu vực gần Việt Nam nhất để tối ưu tốc độ ping:
-   ```toml
-   primary_region = "sin"  # Singapore (Đề xuất)
-   # Hoặc "hkg" (Hong Kong)
-   ```
+2.  **Chỉ định Vùng máy chủ (Region)**
+    Trong file `fly.toml`, hãy kiểm tra và chỉnh biến `primary_region` về khu vực gần Việt Nam nhất để tối ưu tốc độ ping:
+    ```toml
+    primary_region = "sin"  # Singapore (Đề xuất)
+    # Hoặc "hkg" (Hong Kong)
+    ```
 
-3. **Tạo Ổ Đĩa Vĩnh Viễn**
-   Câu lệnh này sẽ cấp cho bạn 1 ổ đĩa cứng 1GB tên là `router_data` gắn cố định tại server Singapore (`sin`).
-   ```powershell
-   flyctl volumes create router_data --region sin --size 1
-   ```
-   *(Trọng tâm: Phải cấu hình mount trong `fly.toml` theo [mounts] `destination="/data"`).*
+3.  **Tạo Ổ Đĩa Vĩnh Viễn**
+    Câu lệnh này sẽ cấp cho bạn 1 ổ đĩa cứng 1GB tên là `router_data` gắn cố định tại server Singapore (`sin`).
+    ```powershell
+    flyctl volumes create router_data --region sin --size 1
+    ```
+    *(Trọng tâm: Phải cấu hình mount trong `fly.toml` theo [mounts] `destination="/data"`).*
 
 ---
 
@@ -57,14 +57,17 @@ Bạn **TUYỆT ĐỐI KHÔNG** được bỏ API Key (Nvidia, Gemini...) vào f
 Hãy đẩy thẳng Secret lên két sắt mã hóa của Fly.io bằng Terminal ở máy tính (Chỉ phải làm 1 lần duy nhất):
 
 ```powershell
-# Nạp các API keys AI
-flyctl secrets set NVIDIA_API_KEY="nhập_key_CỦA_BẠN_vào_đây"
-flyctl secrets set GEMINI_API_KEY="nhập_key_CỦA_BẠN_vào_đây"
-flyctl secrets set OPENROUTER_API_KEY="nhập_key_CỦA_BẠN_vào_đây"
+# Nạp các API keys AI (Hỗ trợ nhiều key cách nhau bằng dấu phẩy để tự động xoay vòng)
+flyctl secrets set GEMINI_API_KEY="key1,key2,key3"
+flyctl secrets set NVIDIA_API_KEY="key_chinh,key_du_phong"
+flyctl secrets set OPENROUTER_API_KEY="sk-xxx..."
 
 # Gửi yêu cầu cập nhật lại Server để áp dụng Key mới nạp
 flyctl secrets deploy
 ```
+
+> [!TIP]
+> **Tính năng Xoay vòng Key (Rotation):** Nếu bạn nhập nhiều key cách nhau bằng dấu phẩy, Router sẽ tự động nhận diện. Khi một key bị lỗi `429` (Hết hạn mức), hệ thống sẽ tự động chuyển sang key tiếp theo và thử lại yêu cầu đó ngay lập tức mà không làm gián đoạn người dùng.
 
 ---
 

@@ -9,11 +9,16 @@ class BaseProvider(ABC):
     and return an Anthropic-formatted response (or stream).
     """
     
-    def __init__(self, base_url: str, api_key: str | None = None, model: str | None = None, model_config: Any = None):
-        self.base_url = base_url
-        self.api_key = api_key
-        self.model = model # override model if required by provider config
+    def __init__(self, config: Any, custom_model: str | None = None, model_config: Any = None):
+        self.provider_config = config
+        self.base_url = config.base_url
+        self.model = custom_model # override model if required by provider config
         self.model_config = model_config # Resolved 3-level config
+
+    @property
+    def api_key(self) -> str | None:
+        """Dynamically fetch the active API key from the config context."""
+        return self.provider_config.get_active_key()
 
     @abstractmethod
     async def generate_message(self, request: AnthropicMessageRequest) -> Dict[str, Any]:
