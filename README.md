@@ -118,7 +118,7 @@ To route Claude Code through your server, update your `~/.claude/settings.json`:
 {
   "env": {
     "ANTHROPIC_BASE_URL": "http://127.0.0.1:8082",
-    "ANTHROPIC_AUTH_TOKEN": "",
+    "ANTHROPIC_AUTH_TOKEN": "dummy-key",
     "ANTHROPIC_API_KEY": "",
     "ANTHROPIC_MODEL": "gemini-2.5-flash"
   },

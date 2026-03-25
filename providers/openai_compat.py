@@ -9,27 +9,41 @@ from core.logger import logger
 
 class OpenAICompatibleProvider(BaseProvider):
     async def _post_request(self, payload: dict, stream: bool = False) -> httpx.Response:
-        headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {self.api_key}",
-            "HTTP-Referer": "http://localhost:8082",
-            "X-Title": "Claude Code Router"
-        }
-        
-        url = self.base_url.rstrip("/") + "/chat/completions"
-        logger.debug(f"Sending request to {url} format: {self.base_url}")
-        
-        client = httpx.AsyncClient(timeout=180.0)
-        
-        if stream:
-            request = client.build_request("POST", url, headers=headers, json=payload)
-            # Yielding the stream response object requires careful caller handling
-            return await client.send(request, stream=True)
-        else:
-            response = await client.post(url, headers=headers, json=payload)
-            response.raise_for_status()
-            await client.aclose()
-            return response
+        while True:
+            headers = {
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {self.api_key}",
+                "HTTP-Referer": "http://localhost:8082",
+                "X-Title": "Claude Code Router"
+            }
+            
+            url = self.base_url.rstrip("/") + "/chat/completions"
+            logger.debug(f"Sending request to {url} format: {self.base_url}")
+            
+            client = httpx.AsyncClient(timeout=180.0)
+            
+            try:
+                if stream:
+                    request = client.build_request("POST", url, headers=headers, json=payload)
+                    # Yielding the stream response object requires careful caller handling
+                    response = await client.send(request, stream=True)
+                    response.raise_for_status()
+                    return response
+                else:
+                    response = await client.post(url, headers=headers, json=payload)
+                    response.raise_for_status()
+                    await client.aclose()
+                    return response
+            except httpx.HTTPStatusError as e:
+                if e.response.status_code == 429:
+                    if self.provider_config.rotate_key():
+                        logger.warning("OpenAI Provider API key exhausted (429). Rotated to next key and retrying.")
+                        if not stream:
+                            await client.aclose()
+                        continue
+                if not stream:
+                    await client.aclose()
+                raise e
 
     def _apply_config_to_payload(self, request: AnthropicMessageRequest, payload: dict):
         if not self.model_config:
