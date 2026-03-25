@@ -49,8 +49,17 @@ class ProviderConfig(BaseModel):
         """Move to the next key. Returns True if successfully rotated, False otherwise."""
         from core.logger import logger
         if self._current_key_idx < len(self._api_keys) - 1:
+            old_key = self._api_keys[self._current_key_idx]
             self._current_key_idx += 1
-            logger.info(f"Rotated to backup API key (index {self._current_key_idx}) for provider type '{self.type}'.")
+            new_key = self._api_keys[self._current_key_idx]
+            
+            # Mask keys for safe logging
+            def mask(k): return f"{k[:4]}...{k[-4:]}" if k and len(k) > 8 else "***"
+            
+            logger.warning(
+                f"🔄 [Key Rotation] Switched '{self.type}' Provider Key! "
+                f"Old Key: {mask(old_key)} ➔ New Key: {mask(new_key)} (Index {self._current_key_idx})"
+            )
             return True
         return False
         
