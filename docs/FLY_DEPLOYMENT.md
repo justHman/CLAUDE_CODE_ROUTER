@@ -58,9 +58,11 @@ Hãy đẩy thẳng Secret lên két sắt mã hóa của Fly.io bằng Terminal
 
 ```powershell
 # Nạp các API keys AI (Hỗ trợ nhiều key cách nhau bằng dấu phẩy để tự động xoay vòng)
-flyctl secrets set GEMINI_API_KEY="key1,key2,key3"
-flyctl secrets set NVIDIA_API_KEY="key_chinh,key_du_phong"
-flyctl secrets set OPENROUTER_API_KEY="sk-xxx..."
+flyctl secrets set GEMINI_API_KEY="key1,key2,..."
+
+flyctl secrets set NVIDIA_API_KEY="key1,key2,..."
+
+flyctl secrets set OPENROUTER_API_KEY="key1,key2,..."
 
 # Gửi yêu cầu cập nhật lại Server để áp dụng Key mới nạp
 flyctl secrets deploy
